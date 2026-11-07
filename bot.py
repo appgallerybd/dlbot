@@ -160,9 +160,21 @@ async def on_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except yt_dlp.utils.DownloadError as e:
         log.warning("download error: %s", e)
-        await q.edit_message_text(
-            "❌ ডাউনলোড করা যায়নি। ভিডিওটি প্রাইভেট/রেস্ট্রিক্টেড হতে পারে, বা লিংক ভুল।"
-        )
+        raw = re.sub(r"\x1b\[[0-9;]*m", "", str(e))
+        low = raw.lower()
+        if "sign in to confirm" in low or "not a bot" in low:
+            hint = "ইউটিউব এই সার্ভারের আইপি ব্লক করেছে। cookies.txt লাগবে।"
+        elif "login" in low or "cookies" in low or "rate-limit" in low:
+            hint = "এই সাইট লগইন চাইছে। cookies.txt লাগবে।"
+        elif "ffmpeg" in low:
+            hint = "ffmpeg পাওয়া যাচ্ছে না।"
+        elif "private" in low:
+            hint = "ভিডিওটি প্রাইভেট।"
+        elif "unsupported url" in low:
+            hint = "এই লিংক সাপোর্টেড নয়।"
+        else:
+            hint = "কারণ অজানা।"
+        await q.edit_message_text(f"❌ ডাউনলোড ব্যর্থ। {hint}\n\nত্রুটি:\n{raw[-300:]}")
     except Exception:
         log.exception("unexpected error")
         await q.edit_message_text("❌ কিছু একটা সমস্যা হয়েছে, পরে আবার চেষ্টা করুন।")
